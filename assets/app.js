@@ -489,7 +489,10 @@
     });
 
     // 深链：#lab=<id>  或  #s=<sectionId>
-    const h = decodeURIComponent(location.hash.replace(/^#/, ""));
+    // hash 可能被聊天软件/短链带成非法百分号序列（如 "#%"），decodeURIComponent 会抛 URIError。
+    // 吞掉异常即可：深链解析不了就停在默认视图，不该在控制台报错。
+    let h = "";
+    try { h = decodeURIComponent(location.hash.replace(/^#/, "")); } catch (e) { h = ""; }
     if (h.startsWith("lab=")) {
       const id = h.slice(4);
       if (LABS.some((x) => x.id === id)) mountLab(id);

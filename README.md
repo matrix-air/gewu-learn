@@ -60,9 +60,12 @@ python3 tools/check_data.py     # 数据层：数字是不是真的
 node    tools/render-shots.js   # 内容层：字段齐不齐、交互数值变不变
 node    tools/audit_visual.js   # 几何层：压字 / 看不清 / 撑破屏 / 点不着
 node    tools/audit_subjects.js # 交互层：切科换树 / 深链 / KaTeX
+node    tools/probe-hash.js     # 健壮性：畸形 hash 不报错 + 合法深链仍生效（见坑位 8）
 ```
 
 四道门各自负责一个维度，**都过才算验收过**；任一非 0 退出即打回。实测输出见文末「验收实录」。
+
+`probe-hash.js` 是改 `app.js` 深链段时的回归门（自带 `verdict` 与退出码），不属于日常四门。
 
 前置：`node` 需要 `playwright-core`，脚本按绝对路径 `~/Documents/Aurora/tools/node_modules/playwright-core` 引用，并固定用 Chrome for Testing（`~/Library/Caches/ms-playwright/chromium-1243`）。
 
@@ -98,6 +101,7 @@ gewu-learn/
     ├── render-shots.js        # 内容层验收 + 全页/分屏截图
     ├── audit_visual.js        # 几何层验收（重叠/对比度/溢出/触控）
     ├── audit_subjects.js      # 交互层验收（切科/深链/KaTeX）
+    ├── probe-hash.js          # 健壮性验收（畸形 hash / 合法深链回归，退出码）
     └── diag-wall.js           # 一次性取证脚本：竞品墙懒加载竞态（保留证据）
 ```
 
@@ -112,6 +116,16 @@ gewu-learn/
 5. **科目切换断言的收尾状态**。`audit_subjects.js` 的循环停在「化学」，所以断言当前科首节栏位要写 `>= 5` 而不是 `== 5`（化学 2.3物质的量 是 6 栏）。
 6. **懒加载图别用固定延时判存活**。竞品墙 5 张图是 `loading=lazy`，`render-shots.js` 原来滚到位后 `waitForTimeout(900)` 就判 `naturalWidth>0`——**本地全过、线上报 2/5 BROKEN 的假阴性**（Pages 首包慢，图还没解码完）。改成 `waitForFunction` 等 `every(img.complete)` 才判定。诊断见 `tools/diag-wall.js`（故意留的取证脚本：真实网络请求无一失败、3.9s 后 5/5 全 ok，证明是竞态不是丢图）。
 7. **中文 .bat 与 heredoc 都别碰**。本项目所有源码经 Write/Edit 提交，不用 Bash 重定向写文件；`rsync` 组装发布目录可以，写源码内容不行。
+8. **畸形 hash 会让控制台报错**。`#%`（聊天软件/短链常把深链截断成非法百分号序列）在 `decodeURIComponent` 抛 `URIError`。原实现把深链解析放在 `DOMContentLoaded` **最后**，好在异常点之后的代码没有监听器要装了，所以功能没坏——但控制台会红一条，属于不该有的噪音。已用 `try/catch` 吞掉（`app.js` 深链段）。**验证方法**：`node tools/` 外的 `/tmp/probe-hash.js` 那类脚本，注意 Playwright 改 hash 用 `goto` 是**同文档导航**，`DOMContentLoaded` 不会重跑，必须加唯一 query 强制整页加载，否则量到的是上一个页面的状态（我第一次就这么被骗出「搜索无反应」的假象）。
+
+## 安全口径（HTML 注入面）
+
+页面把课程数据拼进 `innerHTML`，所以逐条查过污点路径：
+
+- **唯一的外部输入是 URL hash**（深链 `#s=` / `#lab=`）。它只被当作**查表键**用（`LABS.some(id===x)` / `IDX.all.some(id===x)`），命中才调 `openLesson`/`mountLab`，**从不写进任何 HTML**。
+- 其余全部来自站内静态数据（`curriculum.js` / `landing.js` 的竞品条目是字面量常量），且所有插值都过 `esc()`（`& < > "` 四字符）。**模板串里的 HTML 属性一律双引号**，`esc()` 覆盖 `"` 即足够闭合属性——这是「不转单引号也安全」的前提，改模板时若出现单引号属性（`='...'`）需同步扩 `esc()`。
+- 已知未收口：`localStorage` 的 `gewu.progress` 可被同源脚本/用户手动篡改，但只用作布尔判断与计数，不进 HTML。
+- 结论只覆盖**前端本页的注入面**；推送前的仓库扫描结论未闭合，不等于项目整体安全。
 
 ## 验收实录（2026-10-03）
 
@@ -140,6 +154,12 @@ errors: [] ; wallCount ['ok:900x473' ×5] ; clusterCount 29 ; labCount 3
 stats: 覆盖 16 册 / 知识簇 29 / 章 65 / 逐节要点 300 条 / 可玩真题 3 道 / 机器门 已过
 hero: 917 N（β−α=16.0°）→ 6148 N（β−α=3.0°），slider 50.0°
 mobileLandingOverflowPx 0 / mobileAppOverflowPx 0
+EXIT=0
+
+$ node tools/probe-hash.js https://matrix-air.github.io/gewu-learn/
+verdict: PASS
+（#% 与 #%E0%A4 均 pageErrors [] 且树照常装配 / #s=<真实 id> learnPane fields=5 /
+ #lab=statics labPane canvas=1）
 EXIT=0
 ```
 
