@@ -53,7 +53,7 @@ python3 -m http.server 8792 --bind 127.0.0.1
 
 数学 73 正文节 / 物理 125 正文节 / 化学 60 正文节；数学无「实验要点」栏**属教材事实，不是缺陷**（`check_data.py` 以 NOTE 输出，不计失败）。
 
-## 三道机器门（全部退出码 0 才算过）
+## 四道机器门（全部退出码 0 才算过）
 
 ```bash
 python3 tools/check_data.py     # 数据层：数字是不是真的
@@ -115,26 +115,31 @@ gewu-learn/
 
 ## 验收实录（2026-10-03）
 
+四道门的脚本都接受一个可选 URL 参数，传线上地址就是对**公网版**验收（同一套判据），本机开发时省略参数走 `127.0.0.1:8792`。下面实录是**对线上跑**的结果。
+
 ```
 $ python3 tools/check_data.py
 结论：全部 PASS
 （册 16 / 章 65 / 簇 29 / 正文 258 / 栏目 42 / 条目 300 / 漏配 0 / 三科主栏齐全）
 EXIT=0
 
-$ node tools/audit_visual.js
+$ node tools/audit_visual.js https://matrix-air.github.io/gewu-learn/
 几何验收：PASS（无重叠 / 对比度达标 / 无横向溢出）
 desktop + mobile-landing + mobile-app：overlapCount 0 / docOverflowPx 0 / tinyTargets []
 EXIT=0
 
-$ node tools/audit_subjects.js
+$ node tools/audit_subjects.js https://matrix-air.github.io/gewu-learn/
 全绿
-（三科树各不相同 / 化学首节 6 栏 / 三条 lab 深链 canvas=1 / #s= 深链 5 栏 /
+（三科树各不相同 / 数学 5 册 11 簇 18 章 73 正文节 · 物理 6 册 8 簇 27 章 125 节 · 化学 5 册 10 簇 20 章 60 节 + 42 栏目条 /
+ 化学首节 2.3物质的量 6 栏 / 三条 lab 深链 canvas=1 / #s= 深链 5 栏 /
  数学 8.1 katexNodes=7 rawDollarLeft=0）
 EXIT=0
 
-$ node tools/render-shots.js
-errors: [] ; 落地页 stats 覆盖 16 册 / 29 簇 / 65 章 / 300 条 / 3 道
+$ node tools/render-shots.js https://matrix-air.github.io/gewu-learn/
+errors: [] ; wallCount ['ok:900x473' ×5] ; clusterCount 29 ; labCount 3
+stats: 覆盖 16 册 / 知识簇 29 / 章 65 / 逐节要点 300 条 / 可玩真题 3 道 / 机器门 已过
 hero: 917 N（β−α=16.0°）→ 6148 N（β−α=3.0°），slider 50.0°
+mobileLandingOverflowPx 0 / mobileAppOverflowPx 0
 EXIT=0
 ```
 
@@ -146,7 +151,7 @@ EXIT=0
 
 ```bash
 # 更新：改动本地后同步发布目录并推 main
-rsync -a --exclude '.*' index.html app.html favicon.svg README.md assets data vendor /tmp/gewu-publish/
+rsync -a --exclude '.*' index.html app.html favicon.svg README.md assets data vendor tools /tmp/gewu-publish/
 cd /tmp/gewu-publish && git add -A && git commit -m "..." && git push
 # 首次建站需手动触发构建（已触发过，后续 push 自动重发）：
 # gh api repos/matrix-air/gewu-learn/pages/builds -X POST
