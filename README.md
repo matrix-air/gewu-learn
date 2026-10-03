@@ -171,11 +171,13 @@ EXIT=0
 
 ```bash
 # 更新：改动本地后同步发布目录并推 main
-rsync -a --exclude '.*' index.html app.html favicon.svg README.md assets data vendor tools /tmp/gewu-publish/
+rsync -a --include='/.nojekyll' --exclude='.*' .nojekyll index.html app.html favicon.svg README.md assets data vendor tools /tmp/gewu-publish/
 cd /tmp/gewu-publish && git add -A && git commit -m "..." && git push
 # 首次建站需手动触发构建（已触发过，后续 push 自动重发）：
 # gh api repos/matrix-air/gewu-learn/pages/builds -X POST
 ```
+
+> **`.nojekyll` 必须显式带上**。原来只写 `--exclude '.*'`，在**已有**的发布目录里没事（rsync 不删目标侧已有文件），但在空目录重建时会漏掉它，下次 `git add -A` 就把删除提交上去、Pages 重新走 Jekyll（潜在故障）。正确写法是 `--include='/.nojekyll'` 放在 `--exclude='.*'` 之前——rsync 规则先匹配者生效。
 
 > 本仓库取代早期同名主题的 `matrix-air/gewu-edu-site`（那是一个**单文件 pitch 页 + 竞品对照墙**）。本仓库是**可用的学习产品**：知识树点得到每一节、节级课程页有六栏骨架、真题拖得动算得出、进度本地留存。旧仓库未删除，但其 README 里的入口不再代表当前形态。
 
