@@ -92,8 +92,16 @@ gewu-learn/
 │   └── img/                   # 竞品官网实拍 5 张
 ├── vendor/katex/              # KaTeX 0.16.47 本地内置（含字体），无 CDN
 ├── favicon.svg
-└── tools/                     # 1 个数据构建 + 1 个数据门 + 3 个验收脚本
+└── tools/
+    ├── build_data.py          # 教材 Markdown → data/curriculum.json + assets/curriculum.js
+    ├── check_data.py          # 数据门（7 项判据，退出码）
+    ├── render-shots.js        # 内容层验收 + 全页/分屏截图
+    ├── audit_visual.js        # 几何层验收（重叠/对比度/溢出/触控）
+    ├── audit_subjects.js      # 交互层验收（切科/深链/KaTeX）
+    └── diag-wall.js           # 一次性取证脚本：竞品墙懒加载竞态（保留证据）
 ```
+
+> `tools/` 一并入库，因为「页面上的数字是真的」这句话要能被复核。但它们是**本机专用**：`playwright-core` 与 Chrome for Testing 按绝对路径引用、`build_data.py` 读本机知识树工程，换台机器直接跑会报路径错——那时把脚本里两个绝对路径改成本机实际位置即可。公网站本身（`index.html` / `app.html` / `assets` / `data` / `vendor`）零依赖，不碰 `tools/`。
 
 ## 踩过的坑（改之前先看）
 
@@ -102,7 +110,8 @@ gewu-learn/
 3. **Mimosa 拦 `path.join(process.env.HOME, ...)`**——被判定为命令注入。写法必须是**硬编码绝对路径字面量**，与 `render-shots.js` 保持一致。
 4. **紧凑模式的 return 陷阱**。`opts.compact` 会在函数后半段提前 `return`，**事件监听必须先装**，否则 hero 里的滑杆装了不响应。
 5. **科目切换断言的收尾状态**。`audit_subjects.js` 的循环停在「化学」，所以断言当前科首节栏位要写 `>= 5` 而不是 `== 5`（化学 2.3物质的量 是 6 栏）。
-6. **中文 .bat 与 heredoc 都别碰**。本项目所有源码经 Write/Edit 提交，不用 Bash 重定向写文件。
+6. **懒加载图别用固定延时判存活**。竞品墙 5 张图是 `loading=lazy`，`render-shots.js` 原来滚到位后 `waitForTimeout(900)` 就判 `naturalWidth>0`——**本地全过、线上报 2/5 BROKEN 的假阴性**（Pages 首包慢，图还没解码完）。改成 `waitForFunction` 等 `every(img.complete)` 才判定。诊断见 `tools/diag-wall.js`（故意留的取证脚本：真实网络请求无一失败、3.9s 后 5/5 全 ok，证明是竞态不是丢图）。
+7. **中文 .bat 与 heredoc 都别碰**。本项目所有源码经 Write/Edit 提交，不用 Bash 重定向写文件；`rsync` 组装发布目录可以，写源码内容不行。
 
 ## 验收实录（2026-10-03）
 
@@ -130,5 +139,19 @@ EXIT=0
 ```
 
 ---
+
+## 发布
+
+公网版：**<https://matrix-air.github.io/gewu-learn/>**（仓库 `matrix-air/gewu-learn`，Pages 源 = main 根 + `.nojekyll`，2026-10-03 发布）
+
+```bash
+# 更新：改动本地后同步发布目录并推 main
+rsync -a --exclude '.*' index.html app.html favicon.svg README.md assets data vendor /tmp/gewu-publish/
+cd /tmp/gewu-publish && git add -A && git commit -m "..." && git push
+# 首次建站需手动触发构建（已触发过，后续 push 自动重发）：
+# gh api repos/matrix-air/gewu-learn/pages/builds -X POST
+```
+
+> 本仓库取代早期同名主题的 `matrix-air/gewu-edu-site`（那是一个**单文件 pitch 页 + 竞品对照墙**）。本仓库是**可用的学习产品**：知识树点得到每一节、节级课程页有六栏骨架、真题拖得动算得出、进度本地留存。旧仓库未删除，但其 README 里的入口不再代表当前形态。
 
 工作名「格物」待定。数据来自本机知识树，真题来自公开卷面，交互数值是 canvas 现场算出的真值。

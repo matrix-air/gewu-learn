@@ -70,7 +70,7 @@ a:hover { text-decoration: underline; }
   padding: 10px 22px;
   background: rgba(30, 30, 30, .92);
   border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px); /* 唯一一处：sticky 顶栏必须模糊，否则下方正文滚动时会从半透背景里穿字 */
   flex-wrap: wrap;
 }
 
