@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学习台 · 格物</title>
+<meta name="description" content="人教 2019 全 16 册逐节要点（29 簇 / 65 章 / 300 条）+ 三道高考真题可拖拽实验，进度存在本地浏览器。">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .shell { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 0; min-height: calc(100vh - 57px); }
+  @media (max-width: 1040px) { .shell { grid-template-columns: 1fr; } }
+
+  /* ── 左：知识树 ── */
+  .sidebar {
+    border-right: 1px solid var(--line); background: var(--bg-2);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .side-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+  .subj-tabs { display: flex; gap: 5px; margin-bottom: 11px; }
+  .subj-tabs .tab {
+    flex: 1 1 auto; font: inherit; font-size: 13px; padding: 7px 6px;
+    border: 1px solid var(--line-2); background: var(--panel); color: var(--ink-2);
+    border-radius: var(--r-1); cursor: pointer;
+  }
+  .subj-tabs .tab:hover { color: var(--ink); }
+  .subj-tabs .tab[aria-selected="true"] { font-weight: 700; color: #fff; }
+  .subj-tabs .tab[data-s="数学"][aria-selected="true"] { background: #7a3c68; border-color: var(--m); }
+  .subj-tabs .tab[data-s="物理"][aria-selected="true"] { background: #2b527f; border-color: var(--p); }
+  .subj-tabs .tab[data-s="化学"][aria-selected="true"] { background: #574486; border-color: var(--c); }
+  .subj-meta { font-size: 11.5px; color: var(--dim); }
+
+  .search { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  .search input {
+    width: 100%; font: inherit; font-size: 13px;
+    background: var(--bg); border: 1px solid var(--line-2); color: var(--ink);
+    border-radius: var(--r-1); padding: 8px 11px;
+  }
+  .search .hint { font-size: 11.5px; color: var(--dim); margin-top: 6px; }
+
+  #tree { overflow: auto; flex: 1 1 auto; padding: 10px 10px 40px; }
+  #tree::-webkit-scrollbar { width: 9px; }
+  #tree::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 9px; }
+
+  .tnode-cluster { margin-bottom: 4px; }
+  .tnode-cluster > summary {
+    display: flex; align-items: baseline; gap: 7px;
+    padding: 7px 9px; border-radius: var(--r-1); cursor: pointer;
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    list-style: none;
+  }
+  .tnode-cluster > summary::-webkit-details-marker { display: none; }
+  .tnode-cluster > summary:hover { background: var(--panel); }
+  .tnode-cluster > summary::before { content: "▸"; color: var(--dim); font-size: 10px; }
+  .tnode-cluster[open] > summary::before { content: "▾"; }
+  .tnode-cluster .cl-meta { font-size: 11px; color: var(--warn); font-weight: 400; margin-left: auto; white-space: nowrap; }
+  .tnode-cluster .cl-q { font-size: 11.5px; color: var(--dim); padding: 0 9px 6px 25px; font-weight: 400; }
+
+  .tnode-chap { margin-left: 11px; }
+  .tnode-chap > summary {
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 5px 8px; border-radius: var(--r-1); cursor: pointer;
+    font-size: 12.5px; color: var(--ink-2); list-style: none;
+  }
+  .tnode-chap > summary::-webkit-details-marker { display: none; }
+  .tnode-chap > summary:hover { background: var(--panel); color: var(--ink); }
+  .tnode-chap > summary::before { content: "▸"; color: var(--line-2); font-size: 9px; }
+  .tnode-chap[open] > summary::before { content: "▾"; }
+  .tnode-chap .st { font-size: 11px; color: var(--warn); margin-left: auto; white-space: nowrap; }
+  .tnode-chap .cl { font-size: 10.5px; color: var(--line-2); }
+
+  .leaf-list { margin: 2px 0 7px 22px; }
+  .leaf-item {
+    display: block; width: 100%; text-align: left;
+    font: inherit; font-size: 12.5px; line-height: 1.55;
+    background: transparent; border: 0; box-shadow: inset 2px 0 0 var(--line);
+    color: var(--dim); padding: 4px 8px; cursor: pointer; border-radius: 0 var(--r-1) var(--r-1) 0;
+  }
+  .leaf-item:hover { color: var(--ink); background: var(--panel); box-shadow: inset 2px 0 0 var(--accent-2); }
+  .leaf-item[aria-current="true"] { color: var(--ink); background: var(--panel-2); box-shadow: inset 2px 0 0 var(--signal); }
+  .leaf-item .num { color: var(--line-2); margin-right: 5px; font-variant-numeric: tabular-nums; }
+  .leaf-item.done .num { color: var(--ok); }
+  .leaf-item.done::after { content: " ✓"; color: var(--ok); font-size: 11px; }
+  .leaf-item.extra { font-style: italic; }
+
+  /* ── 右：内容区 ── */
+  .content { min-width: 0; display: flex; flex-direction: column; }
+  .app-head {
+    padding: 16px 24px 14px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .crust { font-size: 12.5px; color: var(--dim); }
+  .crust b { color: var(--ink-2); font-weight: 600; }
+  .app-main { padding: 22px 24px 70px; overflow: auto; flex: 1 1 auto; }
+
+  .pane { display: none; }
+  .pane.on { display: block; }
+
+  /* 课程页 */
+  .lesson-head { border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px; }
+  .lesson-title { font-size: 25px; font-weight: 700; letter-spacing: -.01em; line-height: 1.35; }
+  .lesson-num { color: var(--accent-2); font-variant-numeric: tabular-nums; margin-right: 9px; }
+  .lesson-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; align-items: center; }
+  .lesson-meta .srcline { font-size: 12px; color: var(--dim); margin-left: auto; }
+
+  .fields { display: flex; flex-direction: column; gap: 15px; }
+  .fld {
+    display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 14px;
+    padding: 15px 17px; background: var(--panel);
+    border: 1px solid var(--line); border-radius: var(--r-2);
+  }
+  @media (max-width: 720px) { .fld { grid-template-columns: 1fr; gap: 7px; } }
+  .fld-l { font-size: 13px; font-weight: 700; color: var(--signal); }
+  .fld-v { font-size: 14px; line-height: 1.85; color: var(--ink-2); }
+  .fld-v b { color: var(--ink); font-weight: 600; }
+  .fld.hl { border-color: rgba(0, 229, 255, .4); background: rgba(0, 229, 255, .035); }
+  .fld.hl .fld-l { color: #fff; }
+
+  .lesson-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; align-items: center; }
+  .lesson-actions .note { font-size: 12.5px; color: var(--dim); }
+
+  /* 空态 / 占位 */
+  .empty {
+    padding: 40px 8px; text-align: center; color: var(--dim); font-size: 14px; line-height: 1.9;
+  }
+  .empty b { color: var(--ink-2); }
+
+  /* 知识地图总览 */
+  .ov-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 13px; }
+  .ov {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-2); padding: 15px 17px;
+  }
+  .ov .big { font-size: 25px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .ov .big small { font-size: 12.5px; color: var(--dim); font-weight: 400; margin-left: 4px; }
+  .ov .lb { font-size: 12.5px; color: var(--dim); margin-top: 4px; }
+  .ov.math .big { color: var(--m); }
+  .ov.phys .big { color: var(--p); }
+  .ov.chem .big { color: var(--c); }
+
+  .bar-wrap { margin-top: 10px; height: 6px; background: var(--bg); border-radius: 999px; overflow: hidden; }
+  .bar { height: 100%; background: var(--ok); width: 0; }
+
+  .sec-t { font-size: 19px; font-weight: 700; margin: 30px 0 12px; }
+  .sec-t:first-child { margin-top: 0; }
+  .prose { font-size: 14px; color: var(--ink-2); line-height: 1.85; max-width: 62em; }
+  .prose code {
+    font-family: var(--mono); font-size: 12.5px; color: var(--accent-2);
+    background: var(--panel); padding: 1px 6px; border-radius: 4px;
+  }
+  .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 12px; }
+  .kv div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-2); padding: 12px 14px; font-size: 13px; color: var(--ink-2); }
+  .kv b { display: block; color: var(--ink); font-size: 13.5px; margin-bottom: 4px; }
+
+  .lab-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 15px; }
+  .lab-tabs .lt {
+    font: inherit; font-size: 13.5px; padding: 8px 15px;
+    border: 1px solid var(--line-2); background: var(--panel); color: var(--ink-2);
+    border-radius: var(--r-1); cursor: pointer;
+  }
+  .lab-tabs .lt[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .lab-body { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 15px; align-items: start; }
+  @media (max-width: 1180px) { .lab-body { grid-template-columns: 1fr; } }
+  #labHost { display: contents; }
+</style>
+</head>
+<body>
+<a class="skip" href="#lessonPane">跳到课程内容</a>
+
+<nav class="topbar">
+  <a class="brand" href="index.html">格<span class="mark">物</span> <em>GEWU</em></a>
+  <span class="navlinks" id="viewTabs">
+    <a href="#" data-view="map" aria-current="page">知识地图</a>
+    <a href="#" data-view="learn">逐节学习</a>
+    <a href="#" data-view="lab">真题实验室</a>
+  </span>
+  <span class="spacer"></span>
+  <span class="chip" id="progressBadge">已学 0 / 0 节</span>
+</nav>
+
+<div class="shell">
+  <!-- ══════ 左栏：知识树 ══════ -->
+  <aside class="sidebar">
+    <div class="side-head">
+      <div class="subj-tabs" role="tablist" id="subjTabs"></div>
+      <div class="subj-meta" id="subjMeta"></div>
+    </div>
+    <div class="search">
+      <input id="q" type="search" placeholder="搜节名 / 章名 / 簇名…" aria-label="搜索课程内容">
+      <div class="hint" id="qHint">输入关键字，左树只留命中项</div>
+    </div>
+    <nav id="tree" aria-label="课程知识树"></nav>
+  </aside>
+
+  <!-- ══════ 右栏：内容 ══════ -->
+  <main class="content">
+    <div class="app-head">
+      <span class="crust" id="crust">知识地图</span>
+      <span class="spacer"></span>
+      <button class="btn small" id="expandAll">展开当前科</button>
+      <button class="btn small" id="collapseAll">收起</button>
+    </div>
+
+    <div class="app-main">
+      <!-- 知识地图 -->
+      <section class="pane on" id="mapPane">
+        <h2 class="sec-t">覆盖范围</h2>
+        <p class="prose">
+          数据来自人教 2019 高中数理化全部 <b>16 册</b>，按「干＝科 · 枝＝簇 · 条＝章 · 叶＝节」组织。
+          页面上每个数字都由 <code>tools/build_data.py</code> 生成、<code>tools/check_data.py</code> 校验；
+          该门校验册数、章数、簇数、正文节数、栏目条数、章→簇归属、条目栏位完整性——缺一项就退出码 1。
+        </p>
+        <div class="ov-grid" id="ovGrid" style="margin-top:14px;"></div>
+
+        <h2 class="sec-t">栏目骨架（每节都按这个写）</h2>
+        <p class="prose">
+          每一节都拆成固定几栏，不同学科档位不同。最后一栏永远是「高考接口」——告诉你这一节在卷面上以什么形式出现、常在哪一步卡人。
+        </p>
+        <div class="kv" id="fieldMap"></div>
+
+        <h2 class="sec-t">进度</h2>
+        <p class="prose">
+          你标记「已学」的节会存在这个浏览器里（localStorage，键名前缀 <code>gewu.</code>），不上传任何服务器。
+          换浏览器或清缓存就没了。
+        </p>
+        <div style="margin-top:12px;max-width:520px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--dim);">
+            <span id="progLabel">0 / 0</span><span id="progPct">0%</span>
+          </div>
+          <div class="bar-wrap"><div class="bar" id="progBar"></div></div>
+        </div>
+        <div style="margin-top:14px;"><button class="btn small" id="clearProgress">清空本地进度</button></div>
+
+        <h2 class="sec-t">这个站是什么、不是什么</h2>
+        <div class="prose">
+          <p><b>是</b>：一个可点、可拖、可搜的知识地图 + 逐节要点库 + 三道真题交互引擎。所有物理量由页面内数值积分现算，不是预录动画。</p>
+          <p><b>不是</b>：题库（目前只有 3 道真题）、不是已上线商业服务、不含任何收费。引导树按公开解析人工编排，不是大模型现场生成。</p>
+        </div>
+      </section>
+
+      <!-- 逐节学习 -->
+      <section class="pane" id="learnPane">
+        <div id="lesson"></div>
+      </section>
+
+      <!-- 实验室 -->
+      <section class="pane" id="labPane">
+        <div class="lab-tabs" id="labTabs" role="tablist"></div>
+        <div class="lab-body" id="labHost"></div>
+        <p class="prose" style="margin-top:18px;">
+          这三道题各自绑定了它考的教材节（做完可以点回去看那一节的六栏要点）。仿真里的物理量与理论解一致：
+          静力学的 <code>F_Q=G·sinα/sin(β−α)</code>、板块模型的动量守恒与动能定理、电磁感应的动量定理 <code>Δv=B²L²·Δx/(mR)</code>。
+        </p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<footer class="site-footer">
+  <span>格物 · 工作名待定 · 原型演示非商业服务</span>
+  <span class="dot">·</span>
+  <span>教材内容为人教 2019 逐节要点整理，非原文复制</span>
+</footer>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="vendor/katex/auto-render.min.js"></script>
+<script src="assets/interactive.js"></script>
+<script src="assets/curriculum.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

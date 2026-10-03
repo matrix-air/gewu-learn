@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格物 · 高中数理化的知识地图与真题实验室</title>
+<meta name="description" content="人教 2019 全 16 册 · 29 簇 · 65 章 · 300 条逐节要点，配三道高考真题的可拖拽交互实验。">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  /* ── 落地页专用 ── */
+  .wrap { max-width: var(--shell); margin: 0 auto; padding: 0 22px; }
+
+  .hero {
+    display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: 30px; align-items: center;
+    padding: 42px 0 34px;
+    border-bottom: 1px solid var(--line);
+  }
+  @media (max-width: 1020px) { .hero { grid-template-columns: 1fr; padding-top: 26px; } }
+
+  h1 {
+    font-size: clamp(30px, 4.4vw, 47px); line-height: 1.22;
+    font-weight: 700; letter-spacing: -.01em; margin-bottom: 16px;
+  }
+  h1 .hl { color: var(--accent-2); }
+  .scope { font-size: 13.5px; color: var(--signal); margin-bottom: 15px; }
+  .lede { font-size: 16.5px; color: var(--ink-2); max-width: 34em; }
+  .lede b { color: var(--ink); font-weight: 600; }
+
+  .cta-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; align-items: center; }
+  .cta-row .btn { padding: 11px 22px; font-size: 15px; }
+
+  .statline {
+    display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 24px;
+    padding-top: 18px; border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--dim);
+  }
+  .statline b { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .statline .u { color: var(--dim); font-size: 12px; }
+
+  /* 交互台 */
+  .bench {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-3); padding: 15px 17px 17px;
+  }
+  .bench-head {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+    margin-bottom: 12px; padding-bottom: 11px; border-bottom: 1px solid var(--line);
+  }
+  .bench-head h2 { font-size: 15px; font-weight: 700; }
+  .bench-head .sub { font-size: 12px; color: var(--dim); }
+
+  .bench canvas { display: block; width: 100%; background: #191919; border-radius: var(--r-2); touch-action: none; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 12px; align-items: center; font-size: 13px; }
+  .controls label { display: flex; align-items: center; gap: 7px; color: var(--ink-2); }
+  .controls input[type=range] { width: 118px; accent-color: var(--accent); }
+  .controls .val { min-width: 58px; color: var(--accent-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .controls select {
+    font: inherit; background: var(--bg-2); color: var(--ink);
+    border: 1px solid var(--line-2); border-radius: var(--r-1); padding: 5px 8px;
+  }
+  .verdict {
+    margin-top: 11px; padding: 9px 12px; border-radius: var(--r-2);
+    background: var(--bg-2); border: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-2); line-height: 1.65;
+  }
+  .verdict b { color: var(--signal); font-weight: 600; }
+
+  /* 章节 */
+  section.sec { padding: 54px 0; border-bottom: 1px solid var(--line); }
+  section.sec:last-of-type { border-bottom: 0; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  h2.sec-t { font-size: 25px; font-weight: 700; letter-spacing: -.01em; }
+  .sec-sub { font-size: 14px; color: var(--dim); max-width: 52em; margin-bottom: 26px; line-height: 1.7; }
+
+  /* 三主轴卡 */
+  .axes { display: grid; grid-template-columns: repeat(auto-fit, minmax(268px, 1fr)); gap: 15px; }
+  .axis {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--r-3); padding: 19px 20px;
+  }
+  .axis h3 { font-size: 16.5px; margin-bottom: 9px; }
+  .axis .tag { font-size: 11.5px; color: var(--signal); letter-spacing: .1em; margin-bottom: 10px; }
+  .axis p { font-size: 13.5px; color: var(--ink-2); }
+  .axis dl { margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; }
+  .axis dt { color: var(--dim); }
+  .axis dd { color: var(--ink); margin-bottom: 6px; }
+  .axis dd .mono { font-family: var(--mono); color: var(--accent-2); }
+
+  /* 数据条 */
+  .layers { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 13px; margin-top: 6px; }
+  .layer {
+    background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-2);
+    padding: 15px 16px;
+  }
+  .layer .n { font-size: 27px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .layer .n small { font-size: 13px; color: var(--dim); font-weight: 400; margin-left: 4px; }
+  .layer .lb { font-size: 12.5px; color: var(--dim); margin-top: 5px; }
+  .layer.math .n { color: var(--m); }
+  .layer.phys .n { color: var(--p); }
+  .layer.chem .n { color: var(--c); }
+
+  /* 簇表 */
+  .clusters { display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 11px; }
+  .cbox { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-2); padding: 13px 15px; }
+  .cbox .top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .cbox .nm { font-size: 14px; font-weight: 600; }
+  .cbox .ct { font-size: 11.5px; color: var(--warn); white-space: nowrap; }
+  .cbox .q { font-size: 12.5px; color: var(--dim); margin-top: 5px; }
+  .cbox .ch { font-size: 11.5px; color: var(--ink-2); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+
+  /* 竞品墙 */
+  .wall { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 14px; }
+  .shot { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-2); overflow: hidden; }
+  .shot img { display: block; width: 100%; height: 158px; object-fit: cover; object-position: top center; }
+  .shot .cap { padding: 11px 13px; }
+  .shot .cap b { font-size: 13.5px; display: block; }
+  .shot .cap span { font-size: 12px; color: var(--dim); display: block; margin-top: 3px; line-height: 1.6; }
+  .shot .st { font-size: 11.5px; margin-top: 7px; display: inline-block; padding: 1px 8px; border-radius: 999px; }
+  .st.done { color: var(--ok); border: 1px solid rgba(47,191,113,.45); }
+  .st.part { color: var(--warn); border: 1px solid rgba(227,160,8,.45); }
+  .st.gap { color: var(--dim); border: 1px solid var(--line-2); }
+
+  /* 实验室列表 */
+  .labs { display: grid; grid-template-columns: repeat(auto-fit, minmax(292px, 1fr)); gap: 14px; }
+  .labcard {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-3);
+    padding: 17px 19px; display: flex; flex-direction: column;
+  }
+  .labcard h3 { font-size: 16px; margin-bottom: 4px; }
+  .labcard .exam { font-size: 12px; color: var(--signal); margin-bottom: 10px; }
+  .labcard p { font-size: 13.5px; color: var(--ink-2); flex: 1 1 auto; }
+  .labcard .covers { display: flex; flex-wrap: wrap; gap: 5px; margin: 13px 0 14px; }
+  .labcard .go { align-self: flex-start; }
+
+  /* 边界声明 */
+  .honest {
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--r-3); padding: 18px 20px; margin-top: 24px;
+  }
+  .honest h3 { font-size: 14px; margin-bottom: 10px; color: var(--warn); }
+  .honest ul { list-style: none; font-size: 13px; color: var(--ink-2); }
+  .honest li { padding-left: 15px; position: relative; margin-bottom: 7px; line-height: 1.7; }
+  .honest li::before { content: "—"; position: absolute; left: 0; color: var(--dim); }
+  .honest code {
+    font-family: var(--mono); font-size: 12px; color: var(--accent-2);
+    background: var(--panel); padding: 1px 6px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">跳到主内容</a>
+
+<nav class="topbar">
+  <a class="brand" href="index.html">格<span class="mark">物</span> <em>GEWU</em></a>
+  <span class="navlinks">
+    <a href="#axes">方法论</a>
+    <a href="#layers">知识地图</a>
+    <a href="#labs">真题实验室</a>
+    <a href="#vs">行业对照</a>
+  </span>
+  <span class="spacer"></span>
+  <a class="btn primary" href="app.html">进入学习</a>
+</nav>
+
+<main id="main">
+<div class="wrap">
+
+  <!-- ══════════ HERO ══════════ -->
+  <header class="hero">
+    <div>
+      <h1>把<span class="hl">课本每一节</span><br>和一道<span class="hl">高考真题</span>接上</h1>
+      <p class="scope">高考数理化 16 册 · 逐节对回课本 · 真题可拖可算</p>
+      <p class="lede">
+        搜集题、讲一题、练一题，知识是碎的。格物把知识按<b>簇</b>收齐，再逐节对回课本——
+        <b>29 簇 · 65 章 · 300 条逐节要点</b>，每一条末栏都写着「高考接口」。右边的图能拖，公式会跟着变。
+      </p>
+      <div class="cta-row">
+        <a class="btn primary" href="app.html">进入学习台</a>
+        <a class="btn" href="#labs">先玩一道真题</a>
+      </div>
+      <div class="statline">
+        <span>覆盖 <b>16</b> <span class="u">册</span></span>
+        <span>知识簇 <b>29</b></span>
+        <span>章 <b>65</b></span>
+        <span>逐节要点 <b>300</b> <span class="u">条</span></span>
+        <span>可玩真题 <b>3</b> <span class="u">道</span></span>
+        <span>机器门 <b id="gateLine">校验中</b></span>
+      </div>
+    </div>
+
+    <div class="bench" id="heroBench">
+      <div class="bench-head">
+        <h2>拖一下：绳的拉力为什么会炸</h2>
+        <span class="sub">2024 新课标 第 24 题 · 双绳吊装</span>
+      </div>
+      <!-- 交互台由 assets/interactive.js 的紧凑模式装配（canvas + 控件 + 结论） -->
+    </div>
+  </header>
+
+  <!-- ══════════ 方法论 ══════════ -->
+  <section class="sec" id="axes">
+    <div class="sec-head">
+      <h2 class="sec-t">三条主轴</h2>
+      <span class="chip">不是搜一题讲一题</span>
+    </div>
+    <p class="sec-sub">
+      顺序反过来：先让你动手看到现象，再给公式；一个领域一次收齐，不是题海；最后每一节都对回课本原文的组织方式，让你知道自己在课本的第几页。
+    </p>
+    <div class="axes">
+      <div class="axis">
+        <p class="tag">主轴一</p>
+        <h3>情境锚定律</h3>
+        <p>常识 → 交互 → 公式。先把现象摆在你面前，让你自己拧旋钮看它怎么变，公式是解释现象的语言，不是起点。</p>
+        <dl>
+          <dt>课堂里的样子</dt>
+          <dd>右侧这个吊装图：拖动 α，<span class="mono">F_Q</span> 实时变——你在拖动里亲眼看到分母趋零、拉力发散。</dd>
+        </dl>
+      </div>
+      <div class="axis">
+        <p class="tag">主轴二</p>
+        <h3>全域图式律</h3>
+        <p>不做「搜一道讲一道」。一个领域一次收齐，建的是知识图式。每簇带一个核心问题，回答它就把这一片装进脑子。</p>
+        <dl>
+          <dt>课堂里的样子</dt>
+          <dd>物理 8 簇里，「磁场与电磁感应簇」问了句「变化的场怎么发电？」——6 章 24 节挂在同一个问题下面。</dd>
+        </dl>
+      </div>
+      <div class="axis">
+        <p class="tag">底盘</p>
+        <h3>教材内容层</h3>
+        <p>每一条都对回人教 2019 的具体节次，六栏骨架写清「定义 / 公式 / 方法 / 实验 / 栏目线索 / 高考接口」，不是二手总结。</p>
+        <dl>
+          <dt>课堂里的样子</dt>
+          <dd>翻到任何一节，你能看到这一节在高考里以什么形式出现、占几分权重、常在哪一步卡人。</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 知识地图 ══════════ -->
+  <section class="sec" id="layers">
+    <div class="sec-head">
+      <h2 class="sec-t">知识地图长什么样</h2>
+      <span class="chip signal">数字来自机器门校验</span>
+    </div>
+    <p class="sec-sub">
+      三科各自的结构不一样，格物按各自的方式切：物理<span class="chip phys">8 簇</span>、
+      数学<span class="chip math">11 簇</span>、化学<span class="chip chem">10 簇</span>。
+      下面的数字不是写死的文案，是构建脚本跑出来的真值，并且有一道校验门盯着（<code>tools/check_data.py</code>）。
+    </p>
+    <div class="layers" id="layerCards"></div>
+
+    <h3 style="margin-top:32px;font-size:16px;">每簇带一个核心问题</h3>
+    <p class="sec-sub" style="margin:8px 0 16px;">
+      簇不是分类目录，是思维单元——判据是「有没有独立的认知引擎」。所以每簇配一个要回答的问题，答上来才算真会这一片。
+    </p>
+    <div class="clusters" id="clusterGrid"></div>
+  </section>
+
+  <!-- ══════════ 实验室 ══════════ -->
+  <section class="sec" id="labs">
+    <div class="sec-head">
+      <h2 class="sec-t">真题实验室</h2>
+      <span class="chip">数值积分 · 不是预录动画</span>
+    </div>
+    <p class="sec-sub">
+      三道高考真题做成了可拖拽的仿真：物理量由页面内的数值积分现算，你改参数它就重跑。
+      每道题后面接一个苏格拉底式引导树——答对了才放你往下走，不给直接答案。
+    </p>
+    <div class="labs" id="labGrid"></div>
+  </section>
+
+  <!-- ══════════ 行业对照 ══════════ -->
+  <section class="sec" id="vs">
+    <div class="sec-head">
+      <h2 class="sec-t">行业做到哪一步了</h2>
+      <span class="chip">官网实拍抓取</span>
+    </div>
+    <p class="sec-sub">
+      这几家是这件事上的主要玩家。说清楚谁做到了什么、谁在哪一步停下——不是为了踩谁，是为了讲清格物选的那条窄路在哪。
+      截图是无头浏览器抓的各家官网实拍，版权归各厂商，此处仅作教学性对比引用。
+    </p>
+    <div class="wall" id="vsWall"></div>
+
+    <div class="honest">
+      <h3>诚实声明（先读这条）</h3>
+      <ul>
+        <li><b>覆盖范围的边界</b>：教材内容层覆盖人教 2019 高中数理化的<code>正文节</code>；化学的非编号栏目（整理与提升、实验活动、综合专题）单列为「栏目条」，不混进正文节计数。</li>
+        <li><b>数据来源</b>：章节与簇结构来自本机知识树的构建产物；页面上的数字由 <code>build_data.py</code> 生成、<code>check_data.py</code> 校验。文本框里写的是实测真值，不是估的。</li>
+        <li><b>题目数量</b>：目前只有 <b>3 道</b>可玩真题（2024 新课标 24、25，2023 新课标 26），不是题库，是引擎样板。别把它当成能刷题的产品。</li>
+        <li><b>引导树不是大模型</b>：苏格拉底式引导按公开解析人工编排，离线可跑，不是 LLM 现场生成。</li>
+        <li><b>产品状态</b>：工作名为「格物」，这是一个可跑可点的原型，<b>不是已上线的商业服务</b>，不涉及任何收费。日志与学习进度只存在你自己的浏览器里（localStorage），不上传任何服务器。</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+</main>
+
+<footer class="site-footer">
+  <span>格物 · 工作名待定 · 原型演示非商业服务</span>
+  <span class="dot">·</span>
+  <span>学习进度仅存本地浏览器</span>
+  <span class="dot">·</span>
+  <span>竞品截图为各家官网实拍，版权归原厂商</span>
+</footer>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="vendor/katex/auto-render.min.js"></script>
+<script src="assets/interactive.js"></script>
+<script src="assets/summary.js"></script>
+<script src="assets/landing.js"></script>
+</body>
+</html>
